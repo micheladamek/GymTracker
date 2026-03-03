@@ -209,12 +209,9 @@ const DB = {
 
 // ─── Theme ───────────────────────────────────────────────────
 const Theme = {
-  KEY: 'gymtracker_theme',
-  get() { return localStorage.getItem(this.KEY) || 'dark'; },
-  set(t) { localStorage.setItem(this.KEY, t); this.apply(); },
-  toggle() { this.set(this.get() === 'dark' ? 'light' : 'dark'); },
   apply() {
-    document.documentElement.setAttribute('data-theme', this.get());
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   }
 };
 
@@ -290,6 +287,7 @@ const App = {
   init() {
     DB.init();
     Theme.apply();
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => Theme.apply());
     window.addEventListener('hashchange', () => this.route());
     this.route();
     if ('serviceWorker' in navigator) {
@@ -345,7 +343,6 @@ const App = {
     return `
       <div class="header">
         <h1>GymTracker</h1>
-        <button class="theme-toggle" data-action="toggle-theme">${Theme.get() === 'dark' ? '☀️' : '🌙'}</button>
       </div>
       <div class="page">
         <button class="new-workout-btn" data-action="new">+ Nytt pass</button>
@@ -811,9 +808,6 @@ const App = {
       }
       else if (action === 'show-exercise-picker') {
         el.addEventListener('click', () => this.showExercisePicker());
-      }
-      else if (action === 'toggle-theme') {
-        el.addEventListener('click', () => { Theme.toggle(); this.render(); });
       }
       else if (action === 'save-workout') {
         el.addEventListener('click', () => {
