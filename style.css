@@ -597,6 +597,28 @@ html, body {
   color: var(--red);
 }
 
+.done-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.done-toggle.active {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.exercise-card.exercise-done {
+  border-left: 3px solid #22c55e;
+  background: color-mix(in srgb, var(--card) 95%, #22c55e 5%);
+}
+
 /* Exercise picker modal */
 .modal-overlay {
   position: fixed;
