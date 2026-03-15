@@ -492,8 +492,8 @@ const App = {
     if (!this.editingWorkout || this.editingWorkout.type !== type) {
       const last = DB.getLastByType(type);
       const exercises = last
-        ? last.exercises.map(e => ({ ...e, skipped: false }))
-        : [{ name: '', sets: 3, reps: 10, weight: 0, notes: '', skipped: false }];
+        ? last.exercises.map(e => ({ ...e, skipped: false, done: false }))
+        : [{ name: '', sets: 3, reps: 10, weight: 0, notes: '', skipped: false, done: false }];
 
       this.editingWorkout = {
         id: uid(),
@@ -559,7 +559,7 @@ const App = {
     }
 
     return `
-      <div class="exercise-card" data-idx="${idx}" style="${ex.skipped ? 'opacity:0.5' : ''}">
+      <div class="exercise-card ${ex.done ? 'exercise-done' : ''}" data-idx="${idx}" style="${ex.skipped ? 'opacity:0.5' : ''}">
         <div class="exercise-name-row">
           <input class="exercise-name-input" value="${ex.name}" placeholder="Övningsnamn"
             data-action="set-name" data-idx="${idx}">
@@ -589,6 +589,10 @@ const App = {
             data-action="toggle-skip" data-idx="${idx}">
             ${ex.skipped ? '✕ Uteblev' : '○ Markera uteblev'}
           </button>
+          ${!ex.skipped ? `<button class="done-toggle ${ex.done ? 'active' : ''}"
+            data-action="toggle-done" data-idx="${idx}">
+            ${ex.done ? '✓ Klar' : '○ Markera klar'}
+          </button>` : ''}
         </div>
         ${badges ? `<div class="progression">${badges}</div>` : ''}
       </div>`;
@@ -714,7 +718,7 @@ const App = {
             sets: parseInt(item.dataset.pickSets),
             reps: parseInt(item.dataset.pickReps),
             weight: parseFloat(item.dataset.pickWeight),
-            notes: '', skipped: false
+            notes: '', skipped: false, done: false
           });
           overlay.remove();
           this.render();
@@ -726,7 +730,7 @@ const App = {
     overlay.querySelector('[data-pick-new]').addEventListener('click', () => {
       if (this.editingWorkout) {
         this.editingWorkout.exercises.push({
-          name: '', sets: 3, reps: 10, weight: 0, notes: '', skipped: false
+          name: '', sets: 3, reps: 10, weight: 0, notes: '', skipped: false, done: false
         });
         overlay.remove();
         this.render();
@@ -794,6 +798,15 @@ const App = {
           if (this.editingWorkout) {
             const idx = el.dataset.idx;
             this.editingWorkout.exercises[idx].skipped = !this.editingWorkout.exercises[idx].skipped;
+            this.render();
+          }
+        });
+      }
+      else if (action === 'toggle-done') {
+        el.addEventListener('click', () => {
+          if (this.editingWorkout) {
+            const idx = el.dataset.idx;
+            this.editingWorkout.exercises[idx].done = !this.editingWorkout.exercises[idx].done;
             this.render();
           }
         });
