@@ -525,6 +525,7 @@ const App = {
   },
 
   renderExerciseForm(ex, idx, workout) {
+    const total = workout.exercises.length;
     const prev = DB.getPreviousByType(workout.type, workout.date);
     const first = DB.getFirstByTypeBeforeDate(workout.type, workout.date);
 
@@ -563,7 +564,13 @@ const App = {
         <div class="exercise-name-row">
           <input class="exercise-name-input" value="${ex.name}" placeholder="Övningsnamn"
             data-action="set-name" data-idx="${idx}">
-          <button class="exercise-delete" data-action="delete-exercise" data-idx="${idx}">✕</button>
+          <div class="exercise-row-actions">
+            <button class="exercise-move" data-action="move-exercise" data-idx="${idx}" data-dir="up"
+              ${idx === 0 ? 'disabled' : ''}>▲</button>
+            <button class="exercise-move" data-action="move-exercise" data-idx="${idx}" data-dir="down"
+              ${idx === total - 1 ? 'disabled' : ''}>▼</button>
+            <button class="exercise-delete" data-action="delete-exercise" data-idx="${idx}">✕</button>
+          </div>
         </div>
         <div class="exercise-inputs">
           <div class="input-group">
@@ -809,6 +816,17 @@ const App = {
             this.editingWorkout.exercises[idx].done = !this.editingWorkout.exercises[idx].done;
             this.render();
           }
+        });
+      }
+      else if (action === 'move-exercise') {
+        el.addEventListener('click', () => {
+          if (!this.editingWorkout) return;
+          const idx = parseInt(el.dataset.idx);
+          const exs = this.editingWorkout.exercises;
+          const swapIdx = el.dataset.dir === 'up' ? idx - 1 : idx + 1;
+          if (swapIdx < 0 || swapIdx >= exs.length) return;
+          [exs[idx], exs[swapIdx]] = [exs[swapIdx], exs[idx]];
+          this.render();
         });
       }
       else if (action === 'delete-exercise') {
