@@ -585,14 +585,14 @@ const App = {
         <textarea class="exercise-notes" rows="1" placeholder="Anteckningar..."
           data-action="set-notes" data-idx="${idx}">${ex.notes}</textarea>
         <div class="exercise-skip-row">
-          <button class="skip-toggle ${ex.skipped ? 'active' : ''}"
-            data-action="toggle-skip" data-idx="${idx}">
-            ${ex.skipped ? '✕ Uteblev' : '○ Markera uteblev'}
-          </button>
           ${!ex.skipped ? `<button class="done-toggle ${ex.done ? 'active' : ''}"
             data-action="toggle-done" data-idx="${idx}">
             ${ex.done ? '✓ Klar' : '○ Markera klar'}
           </button>` : ''}
+          <button class="skip-toggle ${ex.skipped ? 'active' : ''}"
+            data-action="toggle-skip" data-idx="${idx}">
+            ${ex.skipped ? '✕ Uteblev' : '○ Markera uteblev'}
+          </button>
         </div>
         ${badges ? `<div class="progression">${badges}</div>` : ''}
       </div>`;
