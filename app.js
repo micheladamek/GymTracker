@@ -127,6 +127,7 @@ const SEED_DATA = [
 // ─── Data Layer ──────────────────────────────────────────────
 const DB = {
   KEY: 'gymtracker_workouts',
+  TYPES_KEY: 'gymtracker_custom_types',
 
   init() {
     if (!localStorage.getItem(this.KEY)) {
@@ -199,11 +200,30 @@ const DB = {
       .sort((a, b) => a.name.localeCompare(b.name, 'sv'));
   },
 
+  getCustomTypes() {
+    return JSON.parse(localStorage.getItem(this.TYPES_KEY) || '[]');
+  },
+
+  saveCustomType(name) {
+    const types = this.getCustomTypes();
+    if (!types.includes(name)) {
+      types.push(name);
+      localStorage.setItem(this.TYPES_KEY, JSON.stringify(types));
+    }
+  },
+
+  deleteCustomType(name) {
+    const types = this.getCustomTypes().filter(t => t !== name);
+    localStorage.setItem(this.TYPES_KEY, JSON.stringify(types));
+  },
+
   getTypes() {
-    const types = [...new Set(this.getAll().map(w => w.type))];
+    const workoutTypes = [...new Set(this.getAll().map(w => w.type))];
+    const customTypes = this.getCustomTypes();
     const order = ['Bröst', 'Rygg', 'Ben'];
-    return order.filter(t => types.includes(t))
-      .concat(types.filter(t => !order.includes(t)));
+    const all = [...new Set([...workoutTypes, ...customTypes])];
+    return order.filter(t => all.includes(t))
+      .concat(all.filter(t => !order.includes(t)));
   }
 };
 
@@ -314,6 +334,7 @@ const App = {
       case 'history': app.innerHTML = this.renderHistory(); break;
       case 'stats': app.innerHTML = this.renderStats(); break;
       case 'new-type': app.innerHTML = this.renderTypeSelect(); break;
+      case 'create-type': app.innerHTML = this.renderCreateType(); break;
       case 'new-workout': app.innerHTML = this.renderNewWorkout(); break;
       case 'detail': app.innerHTML = this.renderDetail(); break;
       default: app.innerHTML = this.renderHome();
@@ -325,9 +346,9 @@ const App = {
   // ─── Navigation ───────────────────────────────────────────
   renderNav() {
     const tabs = [
-      { id: 'home', icon: '🏠', label: 'Hem' },
-      { id: 'history', icon: '📋', label: 'Historik' },
-      { id: 'stats', icon: '📊', label: 'Statistik' },
+      { id: 'home', icon: '<i class="ph-duotone ph-house"></i>', label: 'Hem' },
+      { id: 'history', icon: '<i class="ph-duotone ph-calendar-blank"></i>', label: 'Historik' },
+      { id: 'stats', icon: '<i class="ph-duotone ph-chart-bar"></i>', label: 'Statistik' },
     ];
     const active = ['home', 'history', 'stats'].includes(this.view) ? this.view : 'home';
     return `<nav class="bottom-nav">${tabs.map(t =>
@@ -383,7 +404,12 @@ const App = {
       'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
 
     return `
-      <div class="header"><h1>Historik</h1></div>
+      <div class="header">
+        <h1>Historik</h1>
+        <button class="export-btn" data-action="export-workouts">
+          <i class="ph-duotone ph-export"></i> Exportera
+        </button>
+      </div>
       <div class="page">
         ${Object.entries(grouped).map(([key, wks]) => {
           const [y, m] = key.split('-');
@@ -402,13 +428,40 @@ const App = {
     const allWorkouts = DB.getAll();
     const totalCount = allWorkouts.length;
 
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const thisMonthCount = allWorkouts.filter(w => w.date.startsWith(thisMonth)).length;
+
+    const typeCounts = types.map(t => ({ type: t, count: DB.getByType(t).length }));
+    const maxTypeCount = Math.max(...typeCounts.map(t => t.count), 1);
+
     return `
       <div class="header"><h1>Statistik</h1></div>
       <div class="page">
-        <div class="stat-card">
-          <h3>Totalt antal pass</h3>
-          <div class="stat-value">${totalCount}</div>
+        <div class="stats-kpi-card">
+          <div class="stats-kpi">
+            <div class="stats-kpi-value">${totalCount}</div>
+            <div class="stats-kpi-label">pass totalt</div>
+          </div>
+          <div class="stats-kpi-divider"></div>
+          <div class="stats-kpi">
+            <div class="stats-kpi-value">${thisMonthCount}</div>
+            <div class="stats-kpi-label">denna månad</div>
+          </div>
         </div>
+
+        <div class="section-title">Fördelning per typ</div>
+        <div class="stat-card">
+          ${typeCounts.map(tc => `
+            <div class="type-dist-row">
+              <span class="type-dist-label">${typeEmoji(tc.type)} ${tc.type}</span>
+              <div class="type-dist-track">
+                <div class="type-dist-bar" style="width:${Math.round(tc.count / maxTypeCount * 100)}%"></div>
+              </div>
+              <span class="type-dist-count">${tc.count}</span>
+            </div>
+          `).join('')}
+        </div>
+
         ${types.map(type => this.renderTypeStats(type)).join('')}
       </div>`;
   },
@@ -455,15 +508,14 @@ const App = {
 
   // ─── Type Select ──────────────────────────────────────────
   renderTypeSelect() {
-    const types = [
-      { type: 'Bröst', emoji: '💪', desc: '' },
-      { type: 'Rygg', emoji: '🔙', desc: '' },
-      { type: 'Ben', emoji: '🦵', desc: '' },
-    ];
-
-    types.forEach(t => {
-      const last = DB.getLastByType(t.type);
-      t.desc = last ? `Senast: ${formatDate(last.date)}` : 'Inget tidigare pass';
+    const builtIn = ['Bröst', 'Rygg', 'Ben'];
+    const types = DB.getTypes().map(type => {
+      const last = DB.getLastByType(type);
+      return {
+        type,
+        desc: last ? `Senast: ${formatDate(last.date)}` : 'Inget tidigare pass',
+        custom: !builtIn.includes(type),
+      };
     });
 
     return `
@@ -474,14 +526,36 @@ const App = {
       </div>
       <div class="type-selector">
         ${types.map(t => `
-          <button class="type-btn" data-action="start-workout" data-type="${t.type}">
-            <span class="type-emoji">${t.emoji}</span>
-            <div class="type-info">
-              ${t.type}
-              <small>${t.desc}</small>
-            </div>
-          </button>
+          <div class="type-btn-row">
+            <button class="type-btn" data-action="start-workout" data-type="${t.type}">
+              <span class="type-emoji">${typeEmoji(t.type)}</span>
+              <div class="type-info">
+                ${t.type}
+                <small>${t.desc}</small>
+              </div>
+            </button>
+            ${t.custom ? `<button class="type-delete" data-action="delete-type" data-type="${t.type}">✕</button>` : ''}
+          </div>
         `).join('')}
+        <button class="add-type-btn" data-action="create-type">+ Skapa ny passtyp</button>
+      </div>`;
+  },
+
+  // ─── Create Type ──────────────────────────────────────────
+  renderCreateType() {
+    return `
+      <div class="header">
+        <button class="header-back" data-action="back">← Tillbaka</button>
+        <h1>Ny passtyp</h1>
+        <span></span>
+      </div>
+      <div class="page">
+        <div class="create-type-form">
+          <label class="create-type-label">Namn på passtypen</label>
+          <input id="new-type-name" class="create-type-input"
+            placeholder="T.ex. Ländrygg, Axlar, Rehab...">
+        </div>
+        <button class="save-btn" data-action="save-new-type">Spara passtyp</button>
       </div>`;
   },
 
@@ -561,9 +635,9 @@ const App = {
     return `
       <div class="exercise-card ${ex.done ? 'exercise-done' : ''}" data-idx="${idx}" style="${ex.skipped ? 'opacity:0.5' : ''}">
         <div class="exercise-name-row">
+          <div class="drag-handle"><i class="ph ph-dots-six-vertical"></i></div>
           <input class="exercise-name-input" value="${ex.name}" placeholder="Övningsnamn"
             data-action="set-name" data-idx="${idx}">
-          <button class="exercise-delete" data-action="delete-exercise" data-idx="${idx}">✕</button>
         </div>
         <div class="exercise-inputs">
           <div class="input-group">
@@ -738,6 +812,43 @@ const App = {
     });
   },
 
+  // ─── Export ───────────────────────────────────────────────
+  exportWorkouts() {
+    const workouts = DB.getAll().slice().sort((a, b) => a.date.localeCompare(b.date));
+    const today = new Date().toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+    const lines = [
+      `GymTracker Export — ${today}`,
+      '='.repeat(40),
+    ];
+
+    workouts.forEach(w => {
+      lines.push('');
+      lines.push(`${w.type} · ${formatDateLong(w.date)}`);
+      lines.push('-'.repeat(30));
+      w.exercises.forEach(ex => {
+        let line = `  ${ex.name}`;
+        if (ex.skipped) {
+          line += ' [UTEBLEV]';
+        } else {
+          line += `: ${ex.sets} set × ${ex.reps} reps`;
+          if (ex.weight > 0) line += ` @ ${ex.weight} kg`;
+        }
+        lines.push(line);
+        if (ex.notes) lines.push(`    Notering: ${ex.notes}`);
+      });
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gymtracker-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
   // ─── Event Binding ────────────────────────────────────────
   bind() {
     document.querySelectorAll('[data-nav]').forEach(el => {
@@ -755,6 +866,28 @@ const App = {
       }
       else if (action === 'detail') {
         el.addEventListener('click', () => this.navigate(`detail/${el.dataset.id}`));
+      }
+      else if (action === 'create-type') {
+        el.addEventListener('click', () => this.navigate('create-type'));
+      }
+      else if (action === 'delete-type') {
+        el.addEventListener('click', () => {
+          DB.deleteCustomType(el.dataset.type);
+          this.render();
+        });
+      }
+      else if (action === 'save-new-type') {
+        const input = document.getElementById('new-type-name');
+        if (input) {
+          input.focus();
+          input.addEventListener('keydown', e => { if (e.key === 'Enter') el.click(); });
+        }
+        el.addEventListener('click', () => {
+          const name = input ? input.value.trim() : '';
+          if (!name) { if (input) input.focus(); return; }
+          DB.saveCustomType(name);
+          this.navigate('new-type');
+        });
       }
       else if (action === 'start-workout') {
         el.addEventListener('click', () => {
@@ -811,13 +944,8 @@ const App = {
           }
         });
       }
-      else if (action === 'delete-exercise') {
-        el.addEventListener('click', () => {
-          if (this.editingWorkout) {
-            this.editingWorkout.exercises.splice(el.dataset.idx, 1);
-            this.render();
-          }
-        });
+      else if (action === 'export-workouts') {
+        el.addEventListener('click', () => this.exportWorkouts());
       }
       else if (action === 'show-exercise-picker') {
         el.addEventListener('click', () => this.showExercisePicker());
@@ -843,6 +971,91 @@ const App = {
         });
       }
     });
+
+    if (this.view === 'new-workout') this.initDrag();
+  },
+
+  // ─── Drag & Drop ──────────────────────────────────────────
+  initDrag() {
+    const page = document.querySelector('#app .page');
+    if (!page) return;
+
+    const getXY = e => e.touches
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX,            y: e.clientY };
+
+    let drag = null;
+
+    const onStart = e => {
+      if (!e.target.closest('.drag-handle')) return;
+      e.preventDefault();
+      const card = e.target.closest('.exercise-card');
+      const rect = card.getBoundingClientRect();
+      const { y } = getXY(e);
+
+      const ghost = card.cloneNode(true);
+      Object.assign(ghost.style, {
+        position: 'fixed', pointerEvents: 'none', zIndex: '500',
+        width: rect.width + 'px', top: rect.top + 'px', left: rect.left + 'px',
+        opacity: '0.95', transform: 'scale(1.02)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        transition: 'box-shadow 0.1s',
+      });
+      document.body.appendChild(ghost);
+      card.classList.add('drag-source');
+
+      drag = { card, ghost, idx: parseInt(card.dataset.idx), offsetY: y - rect.top, dropIdx: null };
+
+      const onMove = e => {
+        if (!drag) return;
+        e.preventDefault();
+        const { y } = getXY(e);
+        drag.ghost.style.top = (y - drag.offsetY) + 'px';
+
+        page.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+        drag.dropIdx = null;
+        for (const c of page.querySelectorAll('.exercise-card:not(.drag-source)')) {
+          const r = c.getBoundingClientRect();
+          if (y < r.top + r.height / 2) {
+            c.classList.add('drag-over');
+            drag.dropIdx = parseInt(c.dataset.idx);
+            break;
+          }
+        }
+      };
+
+      const onEnd = () => {
+        if (!drag) return;
+        drag.ghost.remove();
+        drag.card.classList.remove('drag-source');
+        page.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+
+        const { idx, dropIdx } = drag;
+        drag = null;
+
+        if (dropIdx !== idx && this.editingWorkout) {
+          const exs = this.editingWorkout.exercises;
+          const [moved] = exs.splice(idx, 1);
+          let insertAt = dropIdx === null ? exs.length : dropIdx;
+          if (dropIdx !== null && dropIdx > idx) insertAt--;
+          exs.splice(insertAt, 0, moved);
+          this.render();
+        }
+
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onEnd);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd, { once: true });
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onEnd, { once: true });
+    };
+
+    page.addEventListener('mousedown', onStart);
+    page.addEventListener('touchstart', onStart, { passive: false });
   }
 };
 

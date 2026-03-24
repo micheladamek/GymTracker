@@ -179,6 +179,79 @@ html, body {
   margin-top: 4px;
 }
 
+.type-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-btn-row .type-btn {
+  flex: 1;
+}
+
+.type-delete {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  padding: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.type-delete:active {
+  color: #e55;
+}
+
+.add-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: none;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-type-btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.create-type-form {
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.create-type-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.create-type-input {
+  width: 100%;
+  font-size: 20px;
+  padding: 14px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.create-type-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* Workout cards on home */
 .workout-card {
   background: var(--card);
@@ -280,14 +353,26 @@ html, body {
   color: var(--text-dim);
 }
 
-.exercise-delete {
-  background: none;
-  border: none;
+.drag-handle {
   color: var(--text-dim);
   font-size: 20px;
-  cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px 8px 4px 0;
+  cursor: grab;
   flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-source {
+  opacity: 0.25;
+}
+
+.exercise-card.drag-over {
+  border-top: 2px solid var(--accent);
 }
 
 .exercise-inputs {
@@ -474,6 +559,84 @@ html, body {
 }
 
 /* Stats page */
+.stats-kpi-card {
+  display: flex;
+  align-items: center;
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.stats-kpi {
+  flex: 1;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.stats-kpi-value {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.stats-kpi-label {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stats-kpi-divider {
+  width: 1px;
+  height: 48px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.type-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.type-dist-row:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.type-dist-label {
+  font-size: 14px;
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.type-dist-track {
+  flex: 1;
+  height: 10px;
+  background: var(--input-bg);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.type-dist-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 5px;
+}
+
+.type-dist-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
 .stat-card {
   background: var(--card);
   border-radius: var(--radius);
@@ -709,6 +872,42 @@ html, body {
 .modal-item-new {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* Phosphor icons */
+.ph-duotone {
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.nav-icon .ph-duotone {
+  font-size: 22px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.type-emoji .ph-duotone {
+  font-size: 32px;
+}
+
+/* Export button */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
+.export-btn:active {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* Animations */
