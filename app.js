@@ -236,13 +236,9 @@ function formatDateLong(iso) {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function typeIcon(type) {
-  const map = {
-    'Bröst': '<i class="ph-duotone ph-barbell"></i>',
-    'Rygg':  '<i class="ph-duotone ph-barbell"></i>',
-    'Ben':   '<i class="ph-duotone ph-person-simple-run"></i>',
-  };
-  return map[type] || '<i class="ph-duotone ph-barbell"></i>';
+function typeEmoji(type) {
+  const map = { 'Bröst': '💪', 'Rygg': '🏋️', 'Ben': '🦵' };
+  return map[type] || '🏋️';
 }
 
 function exerciseSummary(workout) {
@@ -366,7 +362,7 @@ const App = {
     return `
       <div class="workout-card" data-action="detail" data-id="${w.id}">
         <div class="workout-card-header">
-          <span class="workout-card-type">${typeIcon(w.type)} ${w.type}</span>
+          <span class="workout-card-type">${typeEmoji(w.type)} ${w.type}</span>
           <span class="workout-card-date">${formatDate(w.date)}</span>
         </div>
         <div class="workout-card-exercises">${exerciseSummary(w)}</div>
@@ -445,7 +441,7 @@ const App = {
 
     return `
       <div class="stat-card">
-        <h3>${typeIcon(type)} ${type} — progression sedan start</h3>
+        <h3>${typeEmoji(type)} ${type} — progression sedan start</h3>
         ${progressions.map(p => `
           <div class="stat-row">
             <span class="stat-exercise-name">${p.name}${p.currentWeight > 0 ? ` (${p.currentWeight}kg)` : ''}</span>
@@ -484,7 +480,7 @@ const App = {
       <div class="type-selector">
         ${types.map(t => `
           <button class="type-btn" data-action="start-workout" data-type="${t.type}">
-            <span class="type-emoji">${typeIcon(t.type)}</span>
+            <span class="type-emoji">${typeEmoji(t.type)}</span>
             <div class="type-info">
               ${t.type}
               <small>${t.desc}</small>
@@ -517,7 +513,7 @@ const App = {
     return `
       <div class="header">
         <button class="header-back" data-action="back">← Tillbaka</button>
-        <h1>${typeIcon(type)} ${type}</h1>
+        <h1>${typeEmoji(type)} ${type}</h1>
         <span></span>
       </div>
       <div class="page">
@@ -622,7 +618,7 @@ const App = {
     return `
       <div class="header">
         <button class="header-back" data-action="back">← Tillbaka</button>
-        <h1>${typeIcon(w.type)} ${w.type}</h1>
+        <h1>${typeEmoji(w.type)} ${w.type}</h1>
         <span></span>
       </div>
       <div class="page">
