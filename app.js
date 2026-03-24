@@ -407,41 +407,13 @@ const App = {
     const allWorkouts = DB.getAll();
     const totalCount = allWorkouts.length;
 
-    const thisMonth = new Date().toISOString().slice(0, 7);
-    const thisMonthCount = allWorkouts.filter(w => w.date.startsWith(thisMonth)).length;
-
-    const typeCounts = types.map(t => ({ type: t, count: DB.getByType(t).length }));
-    const maxTypeCount = Math.max(...typeCounts.map(t => t.count), 1);
-
     return `
       <div class="header"><h1>Statistik</h1></div>
       <div class="page">
-
-        <div class="stats-kpi-card">
-          <div class="stats-kpi">
-            <div class="stats-kpi-value">${totalCount}</div>
-            <div class="stats-kpi-label">pass totalt</div>
-          </div>
-          <div class="stats-kpi-divider"></div>
-          <div class="stats-kpi">
-            <div class="stats-kpi-value">${thisMonthCount}</div>
-            <div class="stats-kpi-label">denna månad</div>
-          </div>
-        </div>
-
-        <div class="section-title">Fördelning per typ</div>
         <div class="stat-card">
-          ${typeCounts.map(tc => `
-            <div class="type-dist-row">
-              <span class="type-dist-label">${typeEmoji(tc.type)} ${tc.type}</span>
-              <div class="type-dist-track">
-                <div class="type-dist-bar" style="width:${Math.round(tc.count / maxTypeCount * 100)}%"></div>
-              </div>
-              <span class="type-dist-count">${tc.count}</span>
-            </div>
-          `).join('')}
+          <h3>Totalt antal pass</h3>
+          <div class="stat-value">${totalCount}</div>
         </div>
-
         ${types.map(type => this.renderTypeStats(type)).join('')}
       </div>`;
   },
@@ -461,65 +433,28 @@ const App = {
       const weightDiff = ex.weight - firstEx.weight;
       const repsDiff = ex.reps - firstEx.reps;
       if (weightDiff !== 0 || repsDiff !== 0) {
-        progressions.push({
-          name: ex.name,
-          weightDiff, repsDiff,
-          currentWeight: ex.weight, startWeight: firstEx.weight,
-          currentReps: ex.reps, startReps: firstEx.reps,
-        });
+        progressions.push({ name: ex.name, weightDiff, repsDiff, currentWeight: ex.weight });
       }
     });
 
     if (progressions.length === 0) return '';
 
-    const weightExs = progressions.filter(p => p.currentWeight > 0);
-    const repsExs   = progressions.filter(p => p.currentWeight === 0);
-    const maxWeight = Math.max(...weightExs.map(p => Math.max(p.currentWeight, p.startWeight)), 1);
-    const maxReps   = Math.max(...repsExs.map(p => Math.max(p.currentReps, p.startReps)), 1);
-
-    const renderBar = (p, isWeight) => {
-      const current = isWeight ? p.currentWeight : p.currentReps;
-      const start   = isWeight ? p.startWeight   : p.startReps;
-      const diff    = isWeight ? p.weightDiff    : p.repsDiff;
-      const max     = isWeight ? maxWeight        : maxReps;
-      const unit    = isWeight ? 'kg'             : 'reps';
-      const isUp    = diff > 0;
-
-      const startPct   = Math.round(start / max * 100);
-      const currentPct = Math.round(current / max * 100);
-
-      return `
-        <div class="prog-row">
-          <div class="prog-row-header">
-            <span class="prog-name">${p.name}</span>
-            <span class="prog-delta ${isUp ? 'prog-delta-up' : 'prog-delta-down'}">
-              ${isUp ? '▲' : '▼'} ${Math.abs(diff)}${unit}
+    return `
+      <div class="stat-card">
+        <h3>${typeEmoji(type)} ${type} — progression sedan start</h3>
+        ${progressions.map(p => `
+          <div class="stat-row">
+            <span class="stat-exercise-name">${p.name}${p.currentWeight > 0 ? ` (${p.currentWeight}kg)` : ''}</span>
+            <span class="stat-exercise-progression">
+              ${p.weightDiff !== 0 ? `<span class="badge ${p.weightDiff > 0 ? 'badge-up' : 'badge-down'}">
+                ${p.weightDiff > 0 ? '▲' : '▼'} ${Math.abs(p.weightDiff)}kg
+              </span>` : ''}
+              ${p.repsDiff !== 0 ? `<span class="badge ${p.repsDiff > 0 ? 'badge-reps' : 'badge-down'}">
+                ${p.repsDiff > 0 ? '▲' : '▼'} ${Math.abs(p.repsDiff)} reps
+              </span>` : ''}
             </span>
           </div>
-          <div class="prog-bars">
-            <div class="prog-bar-row">
-              <span class="prog-bar-label">Start</span>
-              <div class="prog-track">
-                <div class="prog-bar-start" style="width:${startPct}%"></div>
-              </div>
-              <span class="prog-bar-value">${start}${unit}</span>
-            </div>
-            <div class="prog-bar-row">
-              <span class="prog-bar-label">Nu</span>
-              <div class="prog-track">
-                <div class="prog-bar-current ${isUp ? 'prog-bar-up' : 'prog-bar-down'}" style="width:${currentPct}%"></div>
-              </div>
-              <span class="prog-bar-value">${current}${unit}</span>
-            </div>
-          </div>
-        </div>`;
-    };
-
-    return `
-      <div class="section-title">${typeEmoji(type)} ${type} — ${workouts.length} pass</div>
-      <div class="stat-card">
-        ${weightExs.map(p => renderBar(p, true)).join('')}
-        ${repsExs.map(p => renderBar(p, false)).join('')}
+        `).join('')}
       </div>`;
   },
 
