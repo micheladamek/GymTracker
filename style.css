@@ -733,6 +733,42 @@ html, body {
   font-weight: 600;
 }
 
+/* Phosphor icons */
+.ph-duotone {
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.nav-icon .ph-duotone {
+  font-size: 22px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.type-emoji .ph-duotone {
+  font-size: 32px;
+}
+
+/* Export button */
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 10px;
+  font-family: inherit;
+}
+
+.export-btn:active {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 /* Animations */
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(10px); }

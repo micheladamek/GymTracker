@@ -236,9 +236,13 @@ function formatDateLong(iso) {
   return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
 }
 
-function typeEmoji(type) {
-  const map = { 'Bröst': '💪', 'Rygg': '🏋️', 'Ben': '🦵' };
-  return map[type] || '🏋️';
+function typeIcon(type) {
+  const map = {
+    'Bröst': '<i class="ph-duotone ph-barbell"></i>',
+    'Rygg':  '<i class="ph-duotone ph-barbell"></i>',
+    'Ben':   '<i class="ph-duotone ph-person-simple-run"></i>',
+  };
+  return map[type] || '<i class="ph-duotone ph-barbell"></i>';
 }
 
 function exerciseSummary(workout) {
@@ -325,9 +329,9 @@ const App = {
   // ─── Navigation ───────────────────────────────────────────
   renderNav() {
     const tabs = [
-      { id: 'home', icon: '🏠', label: 'Hem' },
-      { id: 'history', icon: '📋', label: 'Historik' },
-      { id: 'stats', icon: '📊', label: 'Statistik' },
+      { id: 'home', icon: '<i class="ph-duotone ph-house"></i>', label: 'Hem' },
+      { id: 'history', icon: '<i class="ph-duotone ph-calendar-blank"></i>', label: 'Historik' },
+      { id: 'stats', icon: '<i class="ph-duotone ph-chart-bar"></i>', label: 'Statistik' },
     ];
     const active = ['home', 'history', 'stats'].includes(this.view) ? this.view : 'home';
     return `<nav class="bottom-nav">${tabs.map(t =>
@@ -362,7 +366,7 @@ const App = {
     return `
       <div class="workout-card" data-action="detail" data-id="${w.id}">
         <div class="workout-card-header">
-          <span class="workout-card-type">${typeEmoji(w.type)} ${w.type}</span>
+          <span class="workout-card-type">${typeIcon(w.type)} ${w.type}</span>
           <span class="workout-card-date">${formatDate(w.date)}</span>
         </div>
         <div class="workout-card-exercises">${exerciseSummary(w)}</div>
@@ -383,7 +387,12 @@ const App = {
       'Juli', 'Augusti', 'September', 'Oktober', 'November', 'December'];
 
     return `
-      <div class="header"><h1>Historik</h1></div>
+      <div class="header">
+        <h1>Historik</h1>
+        <button class="export-btn" data-action="export-workouts">
+          <i class="ph-duotone ph-export"></i> Exportera
+        </button>
+      </div>
       <div class="page">
         ${Object.entries(grouped).map(([key, wks]) => {
           const [y, m] = key.split('-');
@@ -436,7 +445,7 @@ const App = {
 
     return `
       <div class="stat-card">
-        <h3>${typeEmoji(type)} ${type} — progression sedan start</h3>
+        <h3>${typeIcon(type)} ${type} — progression sedan start</h3>
         ${progressions.map(p => `
           <div class="stat-row">
             <span class="stat-exercise-name">${p.name}${p.currentWeight > 0 ? ` (${p.currentWeight}kg)` : ''}</span>
@@ -456,9 +465,9 @@ const App = {
   // ─── Type Select ──────────────────────────────────────────
   renderTypeSelect() {
     const types = [
-      { type: 'Bröst', emoji: '💪', desc: '' },
-      { type: 'Rygg', emoji: '🔙', desc: '' },
-      { type: 'Ben', emoji: '🦵', desc: '' },
+      { type: 'Bröst', desc: '' },
+      { type: 'Rygg', desc: '' },
+      { type: 'Ben', desc: '' },
     ];
 
     types.forEach(t => {
@@ -475,7 +484,7 @@ const App = {
       <div class="type-selector">
         ${types.map(t => `
           <button class="type-btn" data-action="start-workout" data-type="${t.type}">
-            <span class="type-emoji">${t.emoji}</span>
+            <span class="type-emoji">${typeIcon(t.type)}</span>
             <div class="type-info">
               ${t.type}
               <small>${t.desc}</small>
@@ -508,7 +517,7 @@ const App = {
     return `
       <div class="header">
         <button class="header-back" data-action="back">← Tillbaka</button>
-        <h1>${typeEmoji(type)} ${type}</h1>
+        <h1>${typeIcon(type)} ${type}</h1>
         <span></span>
       </div>
       <div class="page">
@@ -613,7 +622,7 @@ const App = {
     return `
       <div class="header">
         <button class="header-back" data-action="back">← Tillbaka</button>
-        <h1>${typeEmoji(w.type)} ${w.type}</h1>
+        <h1>${typeIcon(w.type)} ${w.type}</h1>
         <span></span>
       </div>
       <div class="page">
@@ -745,6 +754,43 @@ const App = {
     });
   },
 
+  // ─── Export ───────────────────────────────────────────────
+  exportWorkouts() {
+    const workouts = DB.getAll().slice().sort((a, b) => a.date.localeCompare(b.date));
+    const today = new Date().toLocaleDateString('sv-SE', { day: 'numeric', month: 'long', year: 'numeric' });
+    const lines = [
+      `GymTracker Export — ${today}`,
+      '='.repeat(40),
+    ];
+
+    workouts.forEach(w => {
+      lines.push('');
+      lines.push(`${w.type} · ${formatDateLong(w.date)}`);
+      lines.push('-'.repeat(30));
+      w.exercises.forEach(ex => {
+        let line = `  ${ex.name}`;
+        if (ex.skipped) {
+          line += ' [UTEBLEV]';
+        } else {
+          line += `: ${ex.sets} set × ${ex.reps} reps`;
+          if (ex.weight > 0) line += ` @ ${ex.weight} kg`;
+        }
+        lines.push(line);
+        if (ex.notes) lines.push(`    Notering: ${ex.notes}`);
+      });
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gymtracker-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
   // ─── Event Binding ────────────────────────────────────────
   bind() {
     document.querySelectorAll('[data-nav]').forEach(el => {
@@ -836,6 +882,9 @@ const App = {
             this.render();
           }
         });
+      }
+      else if (action === 'export-workouts') {
+        el.addEventListener('click', () => this.exportWorkouts());
       }
       else if (action === 'show-exercise-picker') {
         el.addEventListener('click', () => this.showExercisePicker());
