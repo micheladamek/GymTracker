@@ -488,12 +488,6 @@ const App = {
       const startPct   = Math.round(start / max * 100);
       const currentPct = Math.round(current / max * 100);
 
-      const barHTML = isUp
-        ? `<div class="prog-bar-base" style="width:${startPct}%"></div>
-           <div class="prog-bar-gain" style="width:${currentPct - startPct}%"></div>`
-        : `<div class="prog-bar-base" style="width:${currentPct}%"></div>
-           <div class="prog-bar-loss" style="width:${startPct - currentPct}%"></div>`;
-
       return `
         <div class="prog-row">
           <div class="prog-row-header">
@@ -502,8 +496,22 @@ const App = {
               ${isUp ? '▲' : '▼'} ${Math.abs(diff)}${unit}
             </span>
           </div>
-          <div class="prog-range">${start}${unit} → ${current}${unit}</div>
-          <div class="prog-track">${barHTML}</div>
+          <div class="prog-bars">
+            <div class="prog-bar-row">
+              <span class="prog-bar-label">Start</span>
+              <div class="prog-track">
+                <div class="prog-bar-start" style="width:${startPct}%"></div>
+              </div>
+              <span class="prog-bar-value">${start}${unit}</span>
+            </div>
+            <div class="prog-bar-row">
+              <span class="prog-bar-label">Nu</span>
+              <div class="prog-track">
+                <div class="prog-bar-current ${isUp ? 'prog-bar-up' : 'prog-bar-down'}" style="width:${currentPct}%"></div>
+              </div>
+              <span class="prog-bar-value">${current}${unit}</span>
+            </div>
+          </div>
         </div>`;
     };
 
