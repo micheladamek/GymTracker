@@ -179,6 +179,79 @@ html, body {
   margin-top: 4px;
 }
 
+.type-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-btn-row .type-btn {
+  flex: 1;
+}
+
+.type-delete {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  padding: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.type-delete:active {
+  color: #e55;
+}
+
+.add-type-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: none;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-type-btn:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.create-type-form {
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+.create-type-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.create-type-input {
+  width: 100%;
+  font-size: 20px;
+  padding: 14px 12px;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.create-type-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 /* Workout cards on home */
 .workout-card {
   background: var(--card);

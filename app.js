@@ -127,6 +127,7 @@ const SEED_DATA = [
 // ─── Data Layer ──────────────────────────────────────────────
 const DB = {
   KEY: 'gymtracker_workouts',
+  TYPES_KEY: 'gymtracker_custom_types',
 
   init() {
     if (!localStorage.getItem(this.KEY)) {
@@ -199,11 +200,30 @@ const DB = {
       .sort((a, b) => a.name.localeCompare(b.name, 'sv'));
   },
 
+  getCustomTypes() {
+    return JSON.parse(localStorage.getItem(this.TYPES_KEY) || '[]');
+  },
+
+  saveCustomType(name) {
+    const types = this.getCustomTypes();
+    if (!types.includes(name)) {
+      types.push(name);
+      localStorage.setItem(this.TYPES_KEY, JSON.stringify(types));
+    }
+  },
+
+  deleteCustomType(name) {
+    const types = this.getCustomTypes().filter(t => t !== name);
+    localStorage.setItem(this.TYPES_KEY, JSON.stringify(types));
+  },
+
   getTypes() {
-    const types = [...new Set(this.getAll().map(w => w.type))];
+    const workoutTypes = [...new Set(this.getAll().map(w => w.type))];
+    const customTypes = this.getCustomTypes();
     const order = ['Bröst', 'Rygg', 'Ben'];
-    return order.filter(t => types.includes(t))
-      .concat(types.filter(t => !order.includes(t)));
+    const all = [...new Set([...workoutTypes, ...customTypes])];
+    return order.filter(t => all.includes(t))
+      .concat(all.filter(t => !order.includes(t)));
   }
 };
 
@@ -314,6 +334,7 @@ const App = {
       case 'history': app.innerHTML = this.renderHistory(); break;
       case 'stats': app.innerHTML = this.renderStats(); break;
       case 'new-type': app.innerHTML = this.renderTypeSelect(); break;
+      case 'create-type': app.innerHTML = this.renderCreateType(); break;
       case 'new-workout': app.innerHTML = this.renderNewWorkout(); break;
       case 'detail': app.innerHTML = this.renderDetail(); break;
       default: app.innerHTML = this.renderHome();
@@ -487,15 +508,14 @@ const App = {
 
   // ─── Type Select ──────────────────────────────────────────
   renderTypeSelect() {
-    const types = [
-      { type: 'Bröst', desc: '' },
-      { type: 'Rygg', desc: '' },
-      { type: 'Ben', desc: '' },
-    ];
-
-    types.forEach(t => {
-      const last = DB.getLastByType(t.type);
-      t.desc = last ? `Senast: ${formatDate(last.date)}` : 'Inget tidigare pass';
+    const builtIn = ['Bröst', 'Rygg', 'Ben'];
+    const types = DB.getTypes().map(type => {
+      const last = DB.getLastByType(type);
+      return {
+        type,
+        desc: last ? `Senast: ${formatDate(last.date)}` : 'Inget tidigare pass',
+        custom: !builtIn.includes(type),
+      };
     });
 
     return `
@@ -506,14 +526,36 @@ const App = {
       </div>
       <div class="type-selector">
         ${types.map(t => `
-          <button class="type-btn" data-action="start-workout" data-type="${t.type}">
-            <span class="type-emoji">${typeEmoji(t.type)}</span>
-            <div class="type-info">
-              ${t.type}
-              <small>${t.desc}</small>
-            </div>
-          </button>
+          <div class="type-btn-row">
+            <button class="type-btn" data-action="start-workout" data-type="${t.type}">
+              <span class="type-emoji">${typeEmoji(t.type)}</span>
+              <div class="type-info">
+                ${t.type}
+                <small>${t.desc}</small>
+              </div>
+            </button>
+            ${t.custom ? `<button class="type-delete" data-action="delete-type" data-type="${t.type}">✕</button>` : ''}
+          </div>
         `).join('')}
+        <button class="add-type-btn" data-action="create-type">+ Skapa ny passtyp</button>
+      </div>`;
+  },
+
+  // ─── Create Type ──────────────────────────────────────────
+  renderCreateType() {
+    return `
+      <div class="header">
+        <button class="header-back" data-action="back">← Tillbaka</button>
+        <h1>Ny passtyp</h1>
+        <span></span>
+      </div>
+      <div class="page">
+        <div class="create-type-form">
+          <label class="create-type-label">Namn på passtypen</label>
+          <input id="new-type-name" class="create-type-input"
+            placeholder="T.ex. Ländrygg, Axlar, Rehab...">
+        </div>
+        <button class="save-btn" data-action="save-new-type">Spara passtyp</button>
       </div>`;
   },
 
@@ -824,6 +866,28 @@ const App = {
       }
       else if (action === 'detail') {
         el.addEventListener('click', () => this.navigate(`detail/${el.dataset.id}`));
+      }
+      else if (action === 'create-type') {
+        el.addEventListener('click', () => this.navigate('create-type'));
+      }
+      else if (action === 'delete-type') {
+        el.addEventListener('click', () => {
+          DB.deleteCustomType(el.dataset.type);
+          this.render();
+        });
+      }
+      else if (action === 'save-new-type') {
+        const input = document.getElementById('new-type-name');
+        if (input) {
+          input.focus();
+          input.addEventListener('keydown', e => { if (e.key === 'Enter') el.click(); });
+        }
+        el.addEventListener('click', () => {
+          const name = input ? input.value.trim() : '';
+          if (!name) { if (input) input.focus(); return; }
+          DB.saveCustomType(name);
+          this.navigate('new-type');
+        });
       }
       else if (action === 'start-workout') {
         el.addEventListener('click', () => {
