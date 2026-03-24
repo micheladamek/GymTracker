@@ -407,13 +407,40 @@ const App = {
     const allWorkouts = DB.getAll();
     const totalCount = allWorkouts.length;
 
+    const thisMonth = new Date().toISOString().slice(0, 7);
+    const thisMonthCount = allWorkouts.filter(w => w.date.startsWith(thisMonth)).length;
+
+    const typeCounts = types.map(t => ({ type: t, count: DB.getByType(t).length }));
+    const maxTypeCount = Math.max(...typeCounts.map(t => t.count), 1);
+
     return `
       <div class="header"><h1>Statistik</h1></div>
       <div class="page">
-        <div class="stat-card">
-          <h3>Totalt antal pass</h3>
-          <div class="stat-value">${totalCount}</div>
+        <div class="stats-kpi-card">
+          <div class="stats-kpi">
+            <div class="stats-kpi-value">${totalCount}</div>
+            <div class="stats-kpi-label">pass totalt</div>
+          </div>
+          <div class="stats-kpi-divider"></div>
+          <div class="stats-kpi">
+            <div class="stats-kpi-value">${thisMonthCount}</div>
+            <div class="stats-kpi-label">denna månad</div>
+          </div>
         </div>
+
+        <div class="section-title">Fördelning per typ</div>
+        <div class="stat-card">
+          ${typeCounts.map(tc => `
+            <div class="type-dist-row">
+              <span class="type-dist-label">${typeEmoji(tc.type)} ${tc.type}</span>
+              <div class="type-dist-track">
+                <div class="type-dist-bar" style="width:${Math.round(tc.count / maxTypeCount * 100)}%"></div>
+              </div>
+              <span class="type-dist-count">${tc.count}</span>
+            </div>
+          `).join('')}
+        </div>
+
         ${types.map(type => this.renderTypeStats(type)).join('')}
       </div>`;
   },
