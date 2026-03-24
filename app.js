@@ -557,7 +557,6 @@ const App = {
   },
 
   renderExerciseForm(ex, idx, workout) {
-    const total = workout.exercises.length;
     const prev = DB.getPreviousByType(workout.type, workout.date);
     const first = DB.getFirstByTypeBeforeDate(workout.type, workout.date);
 
@@ -594,15 +593,9 @@ const App = {
     return `
       <div class="exercise-card ${ex.done ? 'exercise-done' : ''}" data-idx="${idx}" style="${ex.skipped ? 'opacity:0.5' : ''}">
         <div class="exercise-name-row">
+          <div class="drag-handle"><i class="ph ph-dots-six-vertical"></i></div>
           <input class="exercise-name-input" value="${ex.name}" placeholder="Övningsnamn"
             data-action="set-name" data-idx="${idx}">
-          <div class="exercise-row-actions">
-            <button class="exercise-move" data-action="move-exercise" data-idx="${idx}" data-dir="up"
-              ${idx === 0 ? 'disabled' : ''}>▲</button>
-            <button class="exercise-move" data-action="move-exercise" data-idx="${idx}" data-dir="down"
-              ${idx === total - 1 ? 'disabled' : ''}>▼</button>
-            <button class="exercise-delete" data-action="delete-exercise" data-idx="${idx}">✕</button>
-          </div>
         </div>
         <div class="exercise-inputs">
           <div class="input-group">
@@ -887,25 +880,6 @@ const App = {
           }
         });
       }
-      else if (action === 'move-exercise') {
-        el.addEventListener('click', () => {
-          if (!this.editingWorkout) return;
-          const idx = parseInt(el.dataset.idx);
-          const exs = this.editingWorkout.exercises;
-          const swapIdx = el.dataset.dir === 'up' ? idx - 1 : idx + 1;
-          if (swapIdx < 0 || swapIdx >= exs.length) return;
-          [exs[idx], exs[swapIdx]] = [exs[swapIdx], exs[idx]];
-          this.render();
-        });
-      }
-      else if (action === 'delete-exercise') {
-        el.addEventListener('click', () => {
-          if (this.editingWorkout) {
-            this.editingWorkout.exercises.splice(el.dataset.idx, 1);
-            this.render();
-          }
-        });
-      }
       else if (action === 'export-workouts') {
         el.addEventListener('click', () => this.exportWorkouts());
       }
@@ -933,6 +907,91 @@ const App = {
         });
       }
     });
+
+    if (this.view === 'new-workout') this.initDrag();
+  },
+
+  // ─── Drag & Drop ──────────────────────────────────────────
+  initDrag() {
+    const page = document.querySelector('#app .page');
+    if (!page) return;
+
+    const getXY = e => e.touches
+      ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      : { x: e.clientX,            y: e.clientY };
+
+    let drag = null;
+
+    const onStart = e => {
+      if (!e.target.closest('.drag-handle')) return;
+      e.preventDefault();
+      const card = e.target.closest('.exercise-card');
+      const rect = card.getBoundingClientRect();
+      const { y } = getXY(e);
+
+      const ghost = card.cloneNode(true);
+      Object.assign(ghost.style, {
+        position: 'fixed', pointerEvents: 'none', zIndex: '500',
+        width: rect.width + 'px', top: rect.top + 'px', left: rect.left + 'px',
+        opacity: '0.95', transform: 'scale(1.02)',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+        transition: 'box-shadow 0.1s',
+      });
+      document.body.appendChild(ghost);
+      card.classList.add('drag-source');
+
+      drag = { card, ghost, idx: parseInt(card.dataset.idx), offsetY: y - rect.top, dropIdx: null };
+
+      const onMove = e => {
+        if (!drag) return;
+        e.preventDefault();
+        const { y } = getXY(e);
+        drag.ghost.style.top = (y - drag.offsetY) + 'px';
+
+        page.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+        drag.dropIdx = null;
+        for (const c of page.querySelectorAll('.exercise-card:not(.drag-source)')) {
+          const r = c.getBoundingClientRect();
+          if (y < r.top + r.height / 2) {
+            c.classList.add('drag-over');
+            drag.dropIdx = parseInt(c.dataset.idx);
+            break;
+          }
+        }
+      };
+
+      const onEnd = () => {
+        if (!drag) return;
+        drag.ghost.remove();
+        drag.card.classList.remove('drag-source');
+        page.querySelectorAll('.exercise-card').forEach(c => c.classList.remove('drag-over'));
+
+        const { idx, dropIdx } = drag;
+        drag = null;
+
+        if (dropIdx !== idx && this.editingWorkout) {
+          const exs = this.editingWorkout.exercises;
+          const [moved] = exs.splice(idx, 1);
+          let insertAt = dropIdx === null ? exs.length : dropIdx;
+          if (dropIdx !== null && dropIdx > idx) insertAt--;
+          exs.splice(insertAt, 0, moved);
+          this.render();
+        }
+
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onEnd);
+        document.removeEventListener('touchmove', onMove);
+        document.removeEventListener('touchend', onEnd);
+      };
+
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onEnd, { once: true });
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onEnd, { once: true });
+    };
+
+    page.addEventListener('mousedown', onStart);
+    page.addEventListener('touchstart', onStart, { passive: false });
   }
 };
 
